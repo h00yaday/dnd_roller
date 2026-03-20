@@ -45,7 +45,10 @@ async def get_characters(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user) 
 ):
-    stmt = select(Character).where(Character.owner_id == current_user.id)
+    stmt = select(Character).where(Character.owner_id == current_user.id).options(
+        selectinload(Character.attacks),
+        selectinload(Character.spells)
+    )
     result = await db.execute(stmt)
     characters = result.scalars().all()
     return characters
@@ -137,7 +140,7 @@ async def roll_character_attack(
         },
         "damage": {
             "total": damage_result["total"],
-            "dice_rolls": damage_result["rolls"],
+            "dice_rolls": damage_result["rolls_detail"], 
             "modifier": damage_result["modifier"],
             "type": attack.damage_type
         }

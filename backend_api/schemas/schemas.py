@@ -1,10 +1,15 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Optional
 
+DICE_PATTERN = r"^\s*(?:[+-]?\s*(?:\d+[dD]\d+|\d+)\s*)+$"
+
 class AttackBase(BaseModel):
     name: str
     attack_bonus: int = 0
-    damage_dice: str
+    damage_dice: str = Field(
+        pattern=DICE_PATTERN, 
+        json_schema_extra={"examples": ["1d8", "2d6+3"]}
+    )
     damage_type: str
 
 class AttackCreate(AttackBase):
