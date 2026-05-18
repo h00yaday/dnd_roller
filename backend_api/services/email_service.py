@@ -26,17 +26,17 @@ async def send_welcome_email_async(email: str, username: str):
     html = f"""
     <html>
         <body style="font-family: Arial, sans-serif; color: #333;">
-            <h2>Привет, {username}! Добро пожаловать в Charnik Online!</h2>
-            <p>Мы очень рады, что ты присоединился к нам.</p>
-            <p>Теперь ты можешь создавать персонажей, бросать кубики и участвовать в кампаниях.</p>
+            <h2>Hello, {username}! Welcome to Charnik Online!</h2>
+            <p>We are very glad you joined us.</p>
+            <p>You can now create characters, roll dice, and participate in campaigns.</p>
             <br>
-            <p>Удачных критических бросков!</p>
+            <p>May your rolls be critical!</p>
         </body>
     </html>
     """
 
     message = MessageSchema(
-        subject="Добро пожаловать в Charnik Online!", recipients=[email], body=html, subtype=MessageType.html
+        subject="Welcome to Charnik Online!", recipients=[email], body=html, subtype=MessageType.html
     )
 
     fm = FastMail(conf)
@@ -46,8 +46,8 @@ async def send_welcome_email_async(email: str, username: str):
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def send_welcome_email(self, email: str, username: str):
     """
-    Отправляет приветственное письмо новому пользователю.
-    При ошибке автоматически повторяет попытку до 3 раз.
+    Sends a welcome email to a new user.
+    Retries up to 3 times on failure.
     """
     try:
         logger.info(f"Starting to send welcome email to {email}")
@@ -55,6 +55,5 @@ def send_welcome_email(self, email: str, username: str):
         logger.info(f"Welcome email successfully sent to {email}")
     except Exception as e:
         logger.exception(f"Failed to send welcome email to {email}: {type(e).__name__}: {e}")
-        # Повторяем задачу с экспоненциальной задержкой: 60s, 120s, 180s
         retry_delay = 60 * (self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)

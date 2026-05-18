@@ -41,7 +41,7 @@ def map_domain_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=404, detail=str(exc))
     if isinstance(exc, ValidationDomainError):
         return HTTPException(status_code=400, detail=str(exc))
-    return HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
+    return HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/", response_model=CharacterResponse, status_code=status.HTTP_201_CREATED)
@@ -223,7 +223,7 @@ async def delete_attack(
         await usecase.get_owned_character(character_id, current_user.id)
         rowcount = await usecase.repo.delete_attack(attack_id, character_id)
         if rowcount <= 0:
-            raise EntityNotFoundError("Атака не найдена")
+            raise EntityNotFoundError("Attack not found")
     except Exception as exc:
         raise map_domain_error(exc) from exc
 
@@ -252,7 +252,7 @@ async def cast_spell(
         char_result = await db.execute(char_stmt)
         character = char_result.scalar_one_or_none()
         if not character:
-            raise EntityNotFoundError("Персонаж не найден")
+            raise EntityNotFoundError("Character not found")
     except Exception as exc:
         raise map_domain_error(exc) from exc
 

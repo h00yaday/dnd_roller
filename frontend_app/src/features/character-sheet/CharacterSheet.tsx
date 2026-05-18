@@ -20,7 +20,6 @@ import CombatTab from './components/CombatTab';
 import SpellsTab from './components/SpellsTab';
 import FeaturesTab from './components/FeaturesTab';
 
-// Импортируем наши новые чистые модалки
 import RollModal from './components/modals/RollModal';
 import AttackModal from './components/modals/AttackModal';
 import SpellModal from './components/modals/SpellModal';
@@ -34,7 +33,6 @@ export default function CharacterSheet({ character,  onBack }: Props) {
   });
   const [activeTab, setActiveTab] = useState<'stats' | 'combat' | 'spells' | 'features'>('stats');
   
-  // Оставили только управление видимостью окон! Стейты самих форм теперь живут внутри модалок.
   const [rollResult, setRollResult] = useState<RollResult | null>(null);
   const [isRolling, setIsRolling] = useState(false);
   const [showAttackModal, setShowAttackModal] = useState(false);
@@ -58,18 +56,17 @@ export default function CharacterSheet({ character,  onBack }: Props) {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
-      retryCountRef.current = 0; // Reset on success
+      retryCountRef.current = 0;
     } catch (err: unknown) {
       if (!(err instanceof UnauthorizedError)) {
         retryCountRef.current++;
         if (retryCountRef.current < maxRetries) {
           console.warn(`Character patch failed (attempt ${retryCountRef.current}/${maxRetries}), will retry...`);
-          // Retry after delay
           setTimeout(() => {
             if (Object.keys(payload).length > 0) {
               void flushCharacterPatch();
             }
-          }, 1000 * retryCountRef.current); // Exponential backoff
+          }, 1000 * retryCountRef.current);
         } else {
           console.error(`Character patch failed after ${maxRetries} attempts, discarding changes`);
           retryCountRef.current = 0;
@@ -101,7 +98,6 @@ export default function CharacterSheet({ character,  onBack }: Props) {
 
   const profBonus = getProfBonus(localChar.level);
 
-  // --- API ФУНКЦИИ ---
   const updateField = useCallback(<K extends keyof Character>(field: K, value: Character[K]) => {
     setLocalChar(prev => ({ ...prev, [field]: value }));
     queueCharacterPatch({ [field]: value } as Partial<Character>);
@@ -128,7 +124,7 @@ export default function CharacterSheet({ character,  onBack }: Props) {
       const result = await fetchJsonWithAuth<RollResult>(url, { method: 'POST' });
       setRollResult(result);
     } catch (err: unknown) {
-      if (!(err instanceof UnauthorizedError)) alert('Не удалось бросить кубики :(');
+      if (!(err instanceof UnauthorizedError)) alert('Failed to roll dice :(');
     } finally { setIsRolling(false); }
   }, []);
 
@@ -151,7 +147,7 @@ export default function CharacterSheet({ character,  onBack }: Props) {
   }, [character.id]);
 
   const deleteItem = useCallback(async (type: 'attacks' | 'spells' | 'features', id: number) => {
-    if (!window.confirm('Точно удалить?')) return;
+    if (!window.confirm('Are you sure you want to delete this?')) return;
     try {
       const res = await fetchWithAuth(`/characters/${character.id}/${type}/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -160,7 +156,7 @@ export default function CharacterSheet({ character,  onBack }: Props) {
           return { ...prev, [type]: collection.filter((item) => item.id !== id) };
         });
       }
-    } catch (err: unknown) { if (!(err instanceof UnauthorizedError)) alert('Ошибка удаления'); }
+    } catch (err: unknown) { if (!(err instanceof UnauthorizedError)) alert('Deletion error'); }
   }, [character.id]);
 
   const updateSpellSlot = useCallback((level: number, total: number, used: number) => {
@@ -182,12 +178,12 @@ export default function CharacterSheet({ character,  onBack }: Props) {
         });
       }
     } catch (err: unknown) {
-      if (!(err instanceof UnauthorizedError)) alert('Не удалось скастовать заклинание :(');
+      if (!(err instanceof UnauthorizedError)) alert('Failed to cast spell :(');
     } finally { setIsRolling(false); }
   }, [character.id]);
 
   const handleLongRest = useCallback(async () => {
-    if (!window.confirm('Совершить продолжительный отдых? Вы восстановите все ХП и ячейки заклинаний.')) return;
+    if (!window.confirm('Take a Long Rest? You will recover all HP and spell slots.')) return;
     await flushCharacterPatch();
     const updatedSlots = { ...localChar.spell_slots };
     for (const level in updatedSlots) updatedSlots[level] = { ...updatedSlots[level], used: 0 };
@@ -197,11 +193,11 @@ export default function CharacterSheet({ character,  onBack }: Props) {
     try {
       queueCharacterPatch({ current_hp: localChar.max_hp, spell_slots: updatedSlots } as Partial<Character>);
       await flushCharacterPatch();
-    } catch (err: unknown) { if (!(err instanceof UnauthorizedError)) console.error('Ошибка сохранения отдыха'); }
+    } catch (err: unknown) { if (!(err instanceof UnauthorizedError)) console.error('Failed to save rest'); }
   }, [flushCharacterPatch, localChar.max_hp, localChar.spell_slots, queueCharacterPatch]);
 
   const handleShortRest = () => {
-    const input = window.prompt('Сколько ХП вы восстановили за короткий отдых? (Используйте кости хитов)');
+    const input = window.prompt('How much HP did you recover during the short rest? (Use Hit Dice)');
     if (input !== null) {
       const amount = parseInt(input, 10);
       if (!isNaN(amount) && amount > 0) updateHP(amount);
@@ -245,13 +241,12 @@ export default function CharacterSheet({ character,  onBack }: Props) {
         onUpdateLevel={updateLevel}
       />
 
-      {/* Навигация */}
       <div className="max-w-6xl mx-auto px-4 mt-6 flex gap-1 overflow-x-auto no-scrollbar">
         {[
-          { id: 'stats', label: 'Характеристики & Навыки' },
-          { id: 'combat', label: 'Бой & Снаряжение' },
-          { id: 'spells', label: 'Заклинания' },
-          { id: 'features', label: 'Особенности' }
+          { id: 'stats', label: 'Stats & Skills' },
+          { id: 'combat', label: 'Combat & Equipment' },
+          { id: 'spells', label: 'Spells' },
+          { id: 'features', label: 'Features' }
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as 'stats' | 'combat' | 'spells' | 'features')} className={`px-6 py-3 rounded-t-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-slate-800 text-amber-400 border-t-2 border-amber-400' : 'bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}>
             {tab.label}
@@ -259,7 +254,6 @@ export default function CharacterSheet({ character,  onBack }: Props) {
         ))}
       </div>
 
-      {/* ТЕЛО ЧАРНИКА */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
         {activeTab === 'stats' && <StatsTab character={localChar} profBonus={profBonus} onToggleSkill={toggleSkill} onToggleSave={toggleSavingThrow} onUpdateStat={updateStat} onRoll={handleRoll} />}
         {activeTab === 'combat' && (
@@ -283,7 +277,6 @@ export default function CharacterSheet({ character,  onBack }: Props) {
         )}
       </div>
 
-      {/* Вынесенные модальные окна! */}
       <RollModal result={rollResult} onClose={() => setRollResult(null)} />
       {showAttackModal && <AttackModal onClose={closeAttackModal} onSubmit={submitAttack} />}
       {showSpellModal && <SpellModal onClose={closeSpellModal} onSubmit={submitSpell} />}

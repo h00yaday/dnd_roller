@@ -11,16 +11,14 @@ interface Props {
 }
 
 export default function FeatureModal({ onClose, onSubmit }: Props) {
-  // 1. Стейт самой формы
   const [form, setForm] = useState({ 
     name: '', 
     description: '', 
-    source: 'Классовая особенность', 
+    source: 'Class Feature', 
     modifiers: {} as Record<string, number> 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2. Стейты для API Поиска
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<Record<string, unknown>>>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -28,11 +26,9 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
   const searchAbortRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef(new Map<string, Promise<Array<Record<string, unknown>>>>());
 
-  // 3. Стейты для ручного добавления бонусов
   const [tempStat, setTempStat] = useState('strength');
   const [tempVal, setTempVal] = useState('');
 
-  // --- ЛОГИКА АВТОМАТИЧЕСКОГО ПАРСЕРА ИЗ ТЕКСТА ---
   const extractModifiersFromText = (text: string): Record<string, number> => {
     const mods: Record<string, number> = {};
     const lowerText = text.toLowerCase();
@@ -57,7 +53,6 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
     return mods;
   };
 
-  // --- ЛОГИКА ПОИСКА ПО API (Open5e) ---
   useEffect(() => {
     if (searchQuery.length < 3) {
       setSearchResults([]); 
@@ -86,8 +81,8 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
             const featsData = await featsRes.json();
             const bgData = await bgRes.json();
             return [
-              ...(featsData.results || []).map((item: Record<string, unknown>) => ({ ...item, route: 'Черта (Feat)' })),
-              ...(bgData.results || []).map((item: Record<string, unknown>) => ({ ...item, route: 'Предыстория' }))
+              ...(featsData.results || []).map((item: Record<string, unknown>) => ({ ...item, route: 'Feat' })),
+              ...(bgData.results || []).map((item: Record<string, unknown>) => ({ ...item, route: 'Background' }))
             ].slice(0, 10);
           })();
           inFlightRef.current.set(searchQuery, request);
@@ -107,7 +102,7 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
         setSearchResults(combined);
       } catch (e) {
         if (!(e instanceof DOMException && e.name === 'AbortError')) {
-          console.error("Ошибка поиска", e);
+          console.error("Search error", e);
         }
       } finally {
         setIsSearching(false);
@@ -125,19 +120,14 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
     };
   }, []);
 
-  // Обработка клика по результату поиска
   const handleSelectResult = (item: Record<string, unknown>) => {
-    // Текст описания в этих эндпоинтах лежит в поле desc
     const description = (item.desc as string | undefined) || '';
-    
-    // Пытаемся автоматически найти бонусы в тексте
     const extractedMods = extractModifiersFromText(description);
 
     setForm({
       name: String(item.name || ''),
-      source: String(item.route || 'Другое'),
+      source: String(item.route || 'Other'),
       description: description,
-      // Если у нас уже были ручные бонусы, объединяем их с найденными (с приоритетом ручных)
       modifiers: { ...extractedMods, ...form.modifiers }
     });
     
@@ -145,7 +135,6 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
     setSearchQuery('');
   };
 
-  // --- ЛОГИКА РУЧНЫХ БОНУСОВ ---
   const handleAddModifier = () => {
     const val = parseInt(tempVal);
     if (!isNaN(val) && val !== 0) {
@@ -169,28 +158,27 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
   };
 
   const statNames: Record<string, string> = {
-    strength: "Сила", dexterity: "Ловкость", constitution: "Телосложение",
-    intelligence: "Интеллект", wisdom: "Мудрость", charisma: "Харизма",
-    armor_class: "Класс Доспеха (AC)", speed: "Скорость", max_hp: "Макс. ХП",
-    initiative_bonus: "Инициатива"
+    strength: "Strength", dexterity: "Dexterity", constitution: "Constitution",
+    intelligence: "Intelligence", wisdom: "Wisdom", charisma: "Charisma",
+    armor_class: "Armor Class (AC)", speed: "Speed", max_hp: "Max HP",
+    initiative_bonus: "Initiative"
   };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <h3 className="text-xl font-black text-emerald-400 mb-6 uppercase tracking-wider">Добавить Особенность</h3>
+        <h3 className="text-xl font-black text-emerald-400 mb-6 uppercase tracking-wider">Add Feature</h3>
         
-        {/* === БЛОК ПОИСКА ИЗ API === */}
         <div className="mb-6 relative bg-slate-900/50 p-4 rounded-xl border border-emerald-900/50">
-          <label className="block text-xs text-emerald-500 font-bold uppercase mb-1">Быстрый поиск по базе (D&D 5e)</label>
+          <label className="block text-xs text-emerald-500 font-bold uppercase mb-1">Quick Search (D&D 5e Database)</label>
           <input 
             type="text" 
             value={searchQuery} 
             onChange={e => setSearchQuery(e.target.value)} 
             className="w-full p-2 bg-slate-900 border border-emerald-700/50 rounded-lg text-slate-200 outline-none focus:border-emerald-400" 
-            placeholder="Введите название на английском (например: Mobile, Acolyte)..." 
+            placeholder="Enter name (e.g., Mobile, Acolyte)..." 
           />
-          {isSearching && <p className="text-[10px] text-slate-400 mt-1 absolute">Ищем в свитках...</p>}
+          {isSearching && <p className="text-[10px] text-slate-400 mt-1 absolute">Searching the scrolls...</p>}
           
           {searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-emerald-700/50 rounded-lg shadow-2xl z-10 max-h-48 overflow-y-auto">
@@ -206,28 +194,27 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
           )}
         </div>
 
-        {/* === ОСНОВНАЯ ФОРМА (РЕДАКТИРУЕМАЯ) === */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Название</label>
-              <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 outline-none focus:border-emerald-500" placeholder="Ночное зрение" />
+              <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Name</label>
+              <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 outline-none focus:border-emerald-500" placeholder="Darkvision" />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Тип (Источник)</label>
+              <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Type (Source)</label>
               <select required value={form.source} onChange={e => setForm({...form, source: e.target.value})} className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 outline-none focus:border-emerald-500">
-                <option value="Классовая особенность">🛡️ Класс</option>
-                <option value="Расовая особенность">🧬 Раса</option>
-                <option value="Предыстория">📜 Предыстория</option>
-                <option value="Черта (Feat)">✨ Черта (Feat)</option>
-                <option value="Дар / Проклятие">💀 Дар / Проклятие</option>
-                <option value="Другое">📌 Другое</option>
+                <option value="Class Feature">🛡️ Class</option>
+                <option value="Racial Trait">🧬 Race</option>
+                <option value="Background">📜 Background</option>
+                <option value="Feat">✨ Feat</option>
+                <option value="Boon / Curse">💀 Boon / Curse</option>
+                <option value="Other">📌 Other</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Описание (Можно редактировать и переводить)</label>
+            <label className="block text-xs text-slate-400 font-bold uppercase mb-1">Description (Editable)</label>
             <textarea 
               required 
               value={form.description} 
@@ -240,14 +227,13 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
                 }));
               }} 
               className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 outline-none focus:border-emerald-500 h-28 resize-none text-sm" 
-              placeholder="Как это работает? Что дает?" 
+              placeholder="How does it work? What does it do?" 
             />
           </div>
 
-          {/* === УПРАВЛЕНИЕ МЕХАНИКОЙ === */}
           <div className="bg-slate-900 rounded-xl p-4 border border-slate-700">
             <div className="flex justify-between items-end mb-2">
-              <label className="block text-xs text-amber-500 font-bold uppercase">Механические Бонусы</label>
+              <label className="block text-xs text-amber-500 font-bold uppercase">Mechanical Bonuses</label>
             </div>
             
             <div className="flex gap-2 mb-3">
@@ -260,7 +246,6 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
               <button type="button" onClick={handleAddModifier} className="bg-slate-700 hover:bg-slate-600 px-3 rounded text-amber-400 font-black transition-colors">+</button>
             </div>
             
-            {/* Рендер плашек с бонусами */}
             {Object.keys(form.modifiers).length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {Object.entries(form.modifiers).map(([stat, val]) => (
@@ -271,14 +256,14 @@ export default function FeatureModal({ onClose, onSubmit }: Props) {
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-500 italic">Нет активных модификаторов. Статы не изменятся.</p>
+              <p className="text-[10px] text-slate-500 italic">No active modifiers. Stats will not change.</p>
             )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-700 mt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white font-bold transition-colors">Отмена</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white font-bold transition-colors">Cancel</button>
             <button type="submit" disabled={isSubmitting || !form.name} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold disabled:opacity-50 transition-colors">
-              Сохранить
+              Save
             </button>
           </div>
         </form>

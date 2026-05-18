@@ -4,7 +4,6 @@ let unauthorizedHandler: UnauthorizedHandler | null = null;
 type NotifyHandler = (message: string) => void;
 let notifyHandler: NotifyHandler | null = null;
 
-// Сохраняем CSRF токен из response при login
 let csrfToken: string | null = null;
 
 export function setCsrfToken(token: string | null) {
@@ -61,7 +60,7 @@ export async function parseOrThrow(response: Response): Promise<Response> {
   const error = new ApiError(response.status, detail);
   
   if (response.status >= 500) {
-    notifyHandler?.('Ошибка сервера. Повторите попытку позже.');
+    notifyHandler?.('Server error. Please try again later.');
   }
   
   throw error;

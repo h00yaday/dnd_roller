@@ -31,7 +31,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     await CharacterService.ensure_username_available(db, user_in.username)
     email_check_result = await db.execute(select(User).where(User.email == user_in.email))
     if email_check_result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
+        raise HTTPException(status_code=400, detail="User with this email already exists")
 
     hashed_pwd = await get_password_hash(user_in.password)
 
@@ -68,7 +68,7 @@ async def login(
     if not user or not await verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверное имя пользователя или пароль",
+            detail="Incorrect username or password",
         )
 
     access_token = create_access_token(data={"sub": str(user.id)})
@@ -99,9 +99,8 @@ async def login(
 
 @router.post("/logout")
 async def logout(response: Response):
-    # Удаляем куки при выходе
     is_secure = settings.ENVIRONMENT == "production"
     samesite = "strict" if is_secure else "lax"
     response.delete_cookie("access_token", samesite=samesite)
     response.delete_cookie("csrf_token", samesite=samesite)
-    return {"message": "Успешный выход"}
+    return {"message": "Logged out successfully"}

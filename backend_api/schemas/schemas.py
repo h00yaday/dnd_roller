@@ -26,7 +26,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
 class FeatureBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     description: str = Field(min_length=1, max_length=5000)
-    source: str = Field(default="Класс", min_length=1, max_length=50)
+    source: str = Field(default="Class", min_length=1, max_length=50)
     modifiers: dict[str, int] = Field(default_factory=dict)
 
 
@@ -35,7 +35,7 @@ class FeatureCreate(FeatureBase):
     def validate_modifier_range(self):
         for key, value in self.modifiers.items():
             if not -10 <= value <= 10:
-                raise ValueError(f"Модификатор '{key}' должен быть в диапазоне от -10 до 10")
+                raise ValueError(f"Modifier '{key}' must be between -10 and 10")
         return self
 
 
@@ -114,8 +114,8 @@ class SpellSlot(BaseModel):
 class CharacterBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     level: int = Field(default=1, ge=1, le=20)
-    race: str = Field(default="Человек", min_length=1, max_length=50)
-    character_class: str = Field(default="Воин", min_length=1, max_length=50)
+    race: str = Field(default="Human", min_length=1, max_length=50)
+    character_class: str = Field(default="Fighter", min_length=1, max_length=50)
     subclass: str | None = Field(default=None, max_length=50)
     background: str | None = Field(default=None, max_length=50)
 
@@ -192,17 +192,14 @@ class UserCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_password_strength(self):
-        # Проверка на наличие букв и цифр
         if not any(ch.isalpha() for ch in self.password) or not any(ch.isdigit() for ch in self.password):
-            raise ValueError("Пароль должен содержать буквы и цифры")
+            raise ValueError("Password must contain both letters and numbers")
         
-        # Проверка что пароль не содержит username
         if self.username.lower() in self.password.lower():
-            raise ValueError("Пароль не должен содержать ваше имя пользователя")
+            raise ValueError("Password cannot contain your username")
         
-        # Проверка минимальной длины (хотя Field уже это проверит)
         if len(self.password) < 8:
-            raise ValueError("Пароль должен содержать не менее 8 символов")
+            raise ValueError("Password must be at least 8 characters long")
         
         return self
 
@@ -210,7 +207,7 @@ class UserCreate(BaseModel):
     @classmethod
     def check_no_spaces(cls, value: str):
         if isinstance(value, str) and " " in value.strip():
-            raise ValueError("Имя пользователя не должно содержать пробелы")
+            raise ValueError("Username cannot contain spaces")
         return value
 
 

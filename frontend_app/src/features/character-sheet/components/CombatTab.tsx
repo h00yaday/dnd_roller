@@ -6,16 +6,15 @@ interface Props {
   character: Character;
   isRolling: boolean;
   onUpdateHp: (amount: number) => void;
-  onUpdateAC: (newAC: number) => void; // Добавили новый пропс для обновления КД
+  onUpdateAC: (newAC: number) => void;
   onRoll: (url: string) => void;
   onAddAttack: () => void;
   onDeleteAttack: (id: number) => void;
 }
 
 function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAddAttack, onDeleteAttack }: Props) {
-  // Состояния для режима редактирования КД
   const [isEditingAC, setIsEditingAC] = useState(false);
-  const [tempAC, setTempAC] = useState<number | string>(character.armor_class); // <-- Добавлен тип string
+  const [tempAC, setTempAC] = useState<number | string>(character.armor_class);
 
   useEffect(() => {
     setTempAC(character.armor_class);
@@ -23,7 +22,7 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
 
   const handleSaveAC = useCallback(() => {
     let numAC = typeof tempAC === 'string' ? parseInt(tempAC, 10) : tempAC;
-    if (isNaN(numAC)) numAC = 0; // Если стерли все, ставим 0
+    if (isNaN(numAC)) numAC = 0;
 
     if (numAC !== character.armor_class) {
       onUpdateAC(numAC);
@@ -49,12 +48,11 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Хитпоинты */}
       <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
          <div className="absolute top-0 w-full h-2 bg-slate-900">
            <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${hpPercent}%` }}></div>
          </div>
-         <h3 className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">Хитпоинты</h3>
+         <h3 className="text-slate-400 font-bold mb-4 uppercase tracking-widest text-sm">Hit Points</h3>
          <div className="flex items-center gap-6">
            <button onClick={() => onUpdateHp(-1)} className="w-12 h-12 rounded-full bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white font-black text-xl transition-colors">-</button>
            <div className="text-center">
@@ -65,9 +63,7 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
          </div>
       </div>
 
-      {/* Класс Доспеха (ОБНОВЛЕНО) */}
       <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 flex flex-col items-center justify-center shadow-xl relative">
-        {/* Кнопка Изменить/Готово */}
         <div className="absolute top-4 right-4">
           <button 
             onClick={isEditingAC ? handleSaveAC : () => setIsEditingAC(true)}
@@ -77,11 +73,11 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
                 : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-blue-400 hover:text-blue-300'
             }`}
           >
-            {isEditingAC ? 'Готово' : 'Изменить'}
+            {isEditingAC ? 'Done' : 'Edit'}
           </button>
         </div>
 
-        <span className="text-sm text-slate-400 font-bold block mb-4 uppercase tracking-widest">Класс Доспеха</span>
+        <span className="text-sm text-slate-400 font-bold block mb-4 uppercase tracking-widest">Armor Class</span>
         
         {isEditingAC ? (
     <div className="flex items-center gap-4 bg-slate-900 p-3 rounded-2xl border border-slate-700">
@@ -101,11 +97,10 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
     <span className="text-5xl font-black text-slate-200">{character.armor_class}</span>
   )}
       </div>
-      {/* Оружие и Атаки */}
       <div className="lg:col-span-2 bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl">
         <div className="flex justify-between items-end mb-6 border-b border-slate-700 pb-2">
-          <h3 className="text-2xl font-black text-slate-200">Оружие и Атаки</h3>
-          <button onClick={onAddAttack} className="text-amber-400 hover:text-amber-300 font-bold text-sm">+ Добавить атаку</button>
+          <h3 className="text-2xl font-black text-slate-200">Weapons & Attacks</h3>
+          <button onClick={onAddAttack} className="text-amber-400 hover:text-amber-300 font-bold text-sm">+ Add Attack</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {(character.attacks || []).map(attack => (
@@ -116,11 +111,11 @@ function CombatTab({ character, isRolling, onUpdateHp, onUpdateAC, onRoll, onAdd
                     <button onClick={() => onDeleteAttack(attack.id)} className="text-xs text-slate-600 hover:text-red-500 transition-colors">✕</button>
                   </div>
                   <div className="flex gap-3 mt-1 text-sm font-mono">
-                    <span className="text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">Попадание: {formatMod(attack.attack_bonus)}</span>
-                    <span className="text-red-400 bg-red-900/20 px-2 py-0.5 rounded border border-red-900/50">Урон: {attack.damage_dice} {attack.damage_type}</span>
+                    <span className="text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">Hit: {formatMod(attack.attack_bonus)}</span>
+                    <span className="text-red-400 bg-red-900/20 px-2 py-0.5 rounded border border-red-900/50">Damage: {attack.damage_dice} {attack.damage_type}</span>
                   </div>
                </div>
-               <button onClick={() => onRoll(`/characters/${character.id}/attacks/${attack.id}/roll`)} disabled={isRolling} className="h-12 w-24 bg-orange-600/20 text-orange-500 border border-orange-500/30 rounded-lg hover:bg-orange-600 hover:text-white font-black uppercase text-sm transition-all active:scale-95 shadow-lg disabled:opacity-50">БИТЬ</button>
+               <button onClick={() => onRoll(`/characters/${character.id}/attacks/${attack.id}/roll`)} disabled={isRolling} className="h-12 w-24 bg-orange-600/20 text-orange-500 border border-orange-500/30 rounded-lg hover:bg-orange-600 hover:text-white font-black uppercase text-sm transition-all active:scale-95 shadow-lg disabled:opacity-50">ATTACK</button>
             </div>
           ))}
         </div>

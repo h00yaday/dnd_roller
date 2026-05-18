@@ -26,7 +26,7 @@ class CharacterService:
     async def ensure_username_available(db: AsyncSession, username: str) -> None:
         result = await db.execute(select(User).where(User.username == username))
         if result.scalar_one_or_none():
-            raise ValidationDomainError("Имя пользователя уже занято")
+            raise ValidationDomainError("Username is already taken")
 
     @staticmethod
     def issue_csrf_token() -> str:
@@ -65,11 +65,11 @@ class CharacterService:
         normalized: dict[str, dict[str, int]] = {}
         for level, slot in (spell_slots or {}).items():
             if not isinstance(slot, dict) or "total" not in slot or "used" not in slot:
-                raise ValidationDomainError(f"Неверный формат spell_slots для уровня '{level}'")
+                raise ValidationDomainError(f"Invalid spell_slots format for level '{level}'")
             total = int(slot["total"])
             used = int(slot["used"])
             if total < 0 or used < 0 or used > total:
-                raise ValidationDomainError(f"Неверные значения spell_slots для уровня '{level}'")
+                raise ValidationDomainError(f"Invalid spell_slots values for level '{level}'")
             normalized[str(level)] = {"total": total, "used": used}
         return normalized
 
@@ -77,13 +77,13 @@ class CharacterService:
     def apply_feature_modifiers(character: Character, modifiers: dict[str, int]) -> None:
         for field, bonus in modifiers.items():
             if not -10 <= bonus <= 10:
-                raise ValidationDomainError(f"Значение modifiers['{field}'] вне диапазона от -10 до 10")
+                raise ValidationDomainError(f"Modifier['{field}'] value out of range -10 to 10")
             if field not in ALLOWED_FEATURE_MODIFIER_FIELDS:
-                raise ValidationDomainError(f"Поле '{field}' нельзя изменять через modifiers")
+                raise ValidationDomainError(f"Field '{field}' cannot be changed via modifiers")
 
             current_val = getattr(character, field, None)
             if not isinstance(current_val, int):
-                raise ValidationDomainError(f"Поле '{field}' не поддерживает числовой модификатор")
+                raise ValidationDomainError(f"Field '{field}' does not support numeric modifiers")
             setattr(character, field, current_val + bonus)
 
         CharacterService._clamp_character_invariants(character)
@@ -109,28 +109,28 @@ class CharacterService:
     @staticmethod
     def validate_pagination(limit: int, offset: int) -> tuple[int, int]:
         if limit < 1 or limit > 100:
-            raise ValidationDomainError("Параметр limit должен быть в диапазоне 1..100")
+            raise ValidationDomainError("Limit parameter must be between 1 and 100")
         if offset < 0:
-            raise ValidationDomainError("Параметр offset должен быть >= 0")
+            raise ValidationDomainError("Offset parameter must be >= 0")
         return limit, offset
 
     @staticmethod
     def validate_cast_level(cast_level: int, spell_level: int) -> int:
         if cast_level < 0 or cast_level > 9:
-            raise ValidationDomainError("Уровень каста должен быть в диапазоне 0..9")
+            raise ValidationDomainError("Cast level must be between 0 and 9")
         if cast_level < spell_level:
-            raise ValidationDomainError("Нельзя кастовать ниже базового уровня заклинания")
+            raise ValidationDomainError("Cannot cast below the spell's base level")
         return cast_level
 
     @staticmethod
     def parse_roll_check(action: str, bonus: int) -> tuple[str, int]:
         normalized_action = action.strip()
         if not normalized_action:
-            raise ValidationDomainError("Параметр action не может быть пустым")
+            raise ValidationDomainError("Action parameter cannot be empty")
         if len(normalized_action) > 200:
-            raise ValidationDomainError("Параметр action слишком длинный")
+            raise ValidationDomainError("Action parameter is too long")
         if bonus < -50 or bonus > 50:
-            raise ValidationDomainError("Параметр bonus должен быть в диапазоне -50..50")
+            raise ValidationDomainError("Bonus parameter must be between -50 and 50")
         return normalized_action, bonus
 
     @staticmethod

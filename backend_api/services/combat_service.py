@@ -11,7 +11,7 @@ from services.domain_exceptions import ValidationDomainError
 class CombatService:
     @staticmethod
     def process_attack_roll(attack: Attack) -> dict:
-        """Обрабатывает бросок атаки и расчет урона"""
+        """Processes attack roll and damage calculation"""
         d20_roll = random.randint(1, 20)
         hit_total = d20_roll + attack.attack_bonus
 
@@ -21,10 +21,10 @@ class CombatService:
         try:
             damage_result = parse_and_roll(attack.damage_dice)
         except ValueError as e:
-            raise ValidationDomainError(f"Ошибка в формуле кубиков атаки: {e}") from e
+            raise ValidationDomainError(f"Error in attack dice formula: {e}") from e
 
         return {
-            "action": f"Атака: {attack.name}",
+            "action": f"Attack: {attack.name}",
             "hit_roll": {
                 "d20_face": d20_roll,
                 "bonus": attack.attack_bonus,
@@ -42,7 +42,7 @@ class CombatService:
 
     @staticmethod
     def process_spell_cast(spell: Spell, character: Character, cast_level: int | None = None) -> dict:
-        """Обрабатывает применение заклинания и расход ячеек"""
+        """Processes spell casting and slot consumption"""
         try:
             actual_cast_level = CharacterService.validate_cast_level(
                 cast_level if cast_level is not None else spell.level, spell.level
@@ -54,33 +54,29 @@ class CombatService:
             raise ValidationDomainError(str(e)) from e
         level_key = str(actual_cast_level)
 
-        # 1. Логика расхода ячеек (если это не заговор)
         if actual_cast_level > 0:
             slot_data = slots.get(level_key)
             if slot_data is None:
-                raise ValidationDomainError(f"Нет доступных ячеек {actual_cast_level} уровня!")
+                raise ValidationDomainError(f"No available level {actual_cast_level} slots!")
 
             if slot_data["total"] - slot_data["used"] <= 0:
-                raise ValidationDomainError(f"Нет доступных ячеек {actual_cast_level} уровня!")
+                raise ValidationDomainError(f"No available level {actual_cast_level} slots!")
 
             slot_data["used"] += 1
             slots[level_key] = slot_data
 
-            # Обновляем состояние персонажа
             character.spell_slots = slots
             flag_modified(character, "spell_slots")
 
-        # 2. Формирование ответа
         spell_slots_remaining = (
-            slots[level_key]["total"] - slots[level_key]["used"] if actual_cast_level > 0 else "Бесконечно (заговор)"
+            slots[level_key]["total"] - slots[level_key]["used"] if actual_cast_level > 0 else "Infinite (cantrip)"
         )
 
         response_data = {
-            "action": f"Каст заклинания: {spell.name} (Уровень {actual_cast_level})",
+            "action": f"Cast: {spell.name} (Level {actual_cast_level})",
             "spell_slots_remaining": spell_slots_remaining,
         }
 
-        # 3. Логика броска атаки заклинанием
         if spell.requires_attack_roll:
             d20_roll = random.randint(1, 20)
             response_data["hit_roll"] = {
@@ -91,7 +87,6 @@ class CombatService:
                 "is_critical_fail": d20_roll == 1,
             }
 
-        # 4. Логика урона
         if spell.damage_dice:
             try:
                 damage_result = parse_and_roll(spell.damage_dice)
@@ -102,14 +97,14 @@ class CombatService:
                     "type": spell.damage_type,
                 }
             except ValueError as e:
-                raise ValidationDomainError(f"Ошибка в формуле кубиков урона: {e}") from e
+                raise ValidationDomainError(f"Error in damage dice formula: {e}") from e
 
         return response_data
 
     @staticmethod
     def process_spell_roll(spell: Spell) -> dict:
-        """Обрабатывает просто бросок заклинания (без расхода ячеек)"""
-        response_data = {"action": f"Каст: {spell.name}"}
+        """Processes spell roll (without slot consumption)"""
+        response_data = {"action": f"Cast: {spell.name}"}
 
         if getattr(spell, "requires_attack_roll", False):
             d20_roll = random.randint(1, 20)
@@ -130,19 +125,19 @@ class CombatService:
                     "total": damage_result["total"],
                     "dice_rolls": damage_result["rolls_detail"],
                     "modifier": damage_result["modifier"],
-                    "type": getattr(spell, "damage_type", "Магический"),
+                    "type": getattr(spell, "damage_type", "Magical"),
                 }
             except ValueError as e:
-                raise ValidationDomainError(f"Ошибка в формуле кубиков урона: {e}") from e
+                raise ValidationDomainError(f"Error in damage dice formula: {e}") from e
 
         if not getattr(spell, "requires_attack_roll", False) and not damage_dice:
-            response_data["effect"] = "Заклинание применено (без бросков урона/попадания)"
+            response_data["effect"] = "Spell cast successfully (no attack/damage rolls)"
 
         return response_data
 
     @staticmethod
     def process_check_roll(action: str, bonus: int) -> dict:
-        """Обрабатывает бросок проверки характеристик/навыков"""
+        """Processes ability/skill check rolls"""
         d20_roll = random.randint(1, 20)
         return {
             "action": action,

@@ -6,7 +6,6 @@ import type { Character } from './types/character';
 import { ApiError, fetchWithAuth, setNotifyHandler, setUnauthorizedHandler, setCsrfToken } from './utils/api';
 
 export default function App() {
-  // Теперь мы просто храним статус авторизации
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +16,7 @@ export default function App() {
     setUnauthorizedHandler(() => {
       setIsAuthenticated(prev => {
         if (prev) {
-          alert('Сессия истекла или недействительна. Пожалуйста, войдите снова.');
+          alert('Session expired or invalid. Please log in again.');
         }
         return false;
       });
@@ -43,14 +42,13 @@ export default function App() {
       if (err instanceof ApiError) {
         setNotification(err.detail);
       } else {
-        console.error("Ошибка загрузки персонажей:", err);
+        console.error("Error loading characters:", err);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Вызываем её ровно один раз при загрузке приложения
   useEffect(() => {
     fetchCharacters();
   }, []);
@@ -64,14 +62,13 @@ export default function App() {
       setIsAuthenticated(false);
       setSelectedCharacter(null);
       setCharacters([]);
-      // Очищаем CSRF токен при logout
       setCsrfToken(null);
     }
   };
 
   const deleteCharacter = async (e: MouseEvent, id: number) => {
     e.stopPropagation();
-    if (!window.confirm('Вы уверены, что хотите удалить этого персонажа навсегда?')) return;
+    if (!window.confirm('Are you sure you want to permanently delete this character?')) return;
     try {
       const res = await fetchWithAuth(`/characters/${id}`, {
         method: 'DELETE'
@@ -80,12 +77,11 @@ export default function App() {
         setCharacters(prev => prev.filter(c => c.id !== id));
       }
     } catch (err: unknown) {
-      console.error('Ошибка удаления', err);
+      console.error('Deletion error', err);
     }
   };
 
   if (!isAuthenticated) {
-    // Передаем коллбэк, который переключит стейт после успешного логина
     return <Auth onLogin={() => {
       setIsAuthenticated(true);
       fetchCharacters();
